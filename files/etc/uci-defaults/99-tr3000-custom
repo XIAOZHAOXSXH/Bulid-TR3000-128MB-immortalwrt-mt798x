@@ -1,0 +1,78 @@
+#!/bin/sh
+
+set -e
+
+add_dnsmasq_blackhole() {
+    local domain="$1"
+    local rule="/${domain}/127.0.0.1"
+    local current
+
+    current="$(uci -q get dhcp.@dnsmasq[0].address || true)"
+    echo "${current}" | tr ' ' '\n' | grep -Fx "${rule}" >/dev/null 2>&1 && return 0
+    uci add_list dhcp.@dnsmasq[0].address="${rule}"
+}
+
+find_wan_zone() {
+    uci show firewall | sed -n "s/^firewall\.\(@zone\[[0-9]\+\]\)\.name='wan'.*/\1/p" | head -n 1
+}
+
+WAN_ZONE="$(find_wan_zone)"
+
+uci -q delete network.globals.ula_prefix
+uci -q delete network.wan6
+uci -q delete network.usb_tether
+
+uci -q batch <<'EOF'
+set network.lan.delegate='0'
+delete network.lan.ip6assign
+set network.wan.ipv6='0'
+set network.usb_tether='interface'
+set network.usb_tether.proto='dhcp'
+set network.usb_tether.device='usb0'
+set network.usb_tether.metric='10'
+set network.usb_tether.delegate='0'
+set network.usb_tether.peerdns='1'
+set network.usb_tether.auto='1'
+set dhcp.lan.dhcpv6='disabled'
+set dhcp.lan.ra='disabled'
+set dhcp.lan.ndp='disabled'
+set firewall.@defaults[0].disable_ipv6='1'
+EOF
+
+for domain in \
+    api-prd.vn.cloud.tesla.cn \
+    hermes-x2-api.prd.vn.cloud.tesla.cn \
+    signaling.vn.cloud.tesla.cn \
+    hermes-prd.vn.cloud.tesla.cn \
+    hermes-stream-prd.vn.cloud.tesla.cn \
+    telemetry-prd.vn.cloud.tesla.cn \
+    telemetry.tesla.cn \
+    apigateway-x2-trigger.tesla.cn \
+    fleet-api.prd.cn.vn.cloud.tesla.cn \
+    firmware.tesla.cn \
+    log.tesla.cn \
+    vehicle-files.prd.cnn1.vn.cloud.tesla.cn; do
+    add_dnsmasq_blackhole "${domain}"
+done
+
+if [ -n "${WAN_ZONE}" ]; then
+    WAN_NETWORKS="$(uci -q get "${WAN_ZONE}.network" || true)"
+    echo "${WAN_NETWORKS}" | tr ' ' '\n' | grep -Fx 'usb_tether' >/dev/null 2>&1 || \
+        uci add_list "${WAN_ZONE}.network=usb_tether"
+    uci -q del_list "${WAN_ZONE}.network=wan6" || true
+fi
+
+uci commit network
+uci commit dhcp
+uci commit firewall
+
+if [ -x /etc/init.d/odhcpd ]; then
+    /etc/init.d/odhcpd disable >/dev/null 2>&1 || true
+    /etc/init.d/odhcpd stop >/dev/null 2>&1 || true
+fi
+
+/etc/init.d/network reload >/dev/null 2>&1 || true
+/etc/init.d/dnsmasq restart >/dev/null 2>&1 || true
+/etc/init.d/firewall restart >/dev/null 2>&1 || true
+
+exit 0

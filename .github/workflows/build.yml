@@ -1,0 +1,136 @@
+name: Build TR3000 128MB ImmortalWrt
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - ".github/workflows/build.yml"
+      - "files/**"
+      - "scripts/**"
+      - "README.md"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tr3000-128mb-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 720
+    env:
+      UPSTREAM_REPO: https://github.com/padavanonly/immortalwrt-mt798x-6.6.git
+      UPSTREAM_BRANCH: openwrt-24.10-6.6
+      BUILD_DIR: openwrt
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Show Disk Space Before Cleanup
+        run: df -h
+
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/.ghcup
+          docker image prune -af || true
+          sudo apt-get clean
+          df -h
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 \
+            ccache clang cmake cpio curl device-tree-compiler flex gawk gettext gcc-multilib \
+            g++-multilib gh git gperf haveged help2man intltool libelf-dev libglib2.0-dev libgmp-dev \
+            libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev \
+            libreadline-dev libssl-dev libtool lrzsz msmtp nano ninja-build p7zip p7zip-full patch \
+            pkgconf python3 python3-docutils python3-pip python3-ply python3-pyelftools qemu-utils \
+            re2c rsync scons squashfs-tools subversion swig texinfo uglifyjs unzip wget xmlto xxd \
+            zlib1g-dev zstd
+
+      - name: Clone Upstream Source
+        run: |
+          git clone --depth 1 --single-branch --branch "${UPSTREAM_BRANCH}" "${UPSTREAM_REPO}" "${BUILD_DIR}"
+
+      - name: Update And Install Feeds
+        working-directory: ${{ env.BUILD_DIR }}
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Apply Custom Files
+        run: ./scripts/apply_custom_files.sh "${BUILD_DIR}"
+
+      - name: Generate .config
+        run: ./scripts/generate_config.sh "${BUILD_DIR}"
+
+      - name: Download Sources
+        working-directory: ${{ env.BUILD_DIR }}
+        run: |
+          set -o pipefail
+          make download -j"$(nproc)" 2>&1 | tee ../download.log
+          find dl -size -1024c -delete
+
+      - name: Build Firmware
+        working-directory: ${{ env.BUILD_DIR }}
+        run: |
+          set -o pipefail
+          make -j"$(nproc)" 2>&1 | tee ../build.log || {
+            make -j1 V=s 2>&1 | tee -a ../build.log
+            exit 1
+          }
+
+      - name: Collect Release Files
+        if: success()
+        run: |
+          mkdir -p artifacts/release
+          ./scripts/collect_release_files.sh "${BUILD_DIR}" artifacts/release
+
+      - name: Upload Build Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tr3000-128mb-${{ github.run_number }}
+          if-no-files-found: warn
+          path: |
+            artifacts/release
+            build.log
+            download.log
+
+      - name: Prepare Release Metadata
+        if: success()
+        id: meta
+        run: |
+          echo "tag=tr3000-128mb-$(date -u +%Y%m%d-%H%M%S)" >> "${GITHUB_OUTPUT}"
+          echo "name=TR3000 128MB ImmortalWrt $(date -u +%Y-%m-%d\ %H:%M:%S) UTC" >> "${GITHUB_OUTPUT}"
+          printf 'commit=%s\n' "$(git -C "${BUILD_DIR}" rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
+
+      - name: Publish Release
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > release_notes.txt <<EOF
+          Upstream repo: ${UPSTREAM_REPO}
+          Upstream branch: ${UPSTREAM_BRANCH}
+          Upstream commit: ${{ steps.meta.outputs.commit }}
+          Device: Cudy TR3000 v1 128MB
+
+          Customizations:
+          - IPv6 compile-time and runtime disabled
+          - Tesla domains redirected to 127.0.0.1 by dnsmasq
+          - Android and iPhone USB tether drivers prebuilt
+          - Default usb_tether DHCP interface with hotplug auto-binding
+          - Generated .config included in release assets
+          EOF
+
+          gh release create "${{ steps.meta.outputs.tag }}" artifacts/release/* \
+            --title "${{ steps.meta.outputs.name }}" \
+            --notes-file release_notes.txt
