@@ -9,7 +9,8 @@
 当前仓库会在 GitHub Actions 中完成以下工作:
 - 按 `cp -f defconfig/mt7981-ax3000.config .config` 的思路生成 `.config`
 - 强制切换到 `cudy_tr3000-v1` 设备，也就是 TR3000 128MB 版本
-- 关闭 IPv6 编译选项和默认运行时 IPv6 配置
+- 保留内核 IPv6 与 HNAT 相关能力，避免 `mtk_hnat` 编译失败
+- 首次启动时通过 UCI 和 sysctl 关闭默认运行时 IPv6 配置
 - 预置 Tesla 相关域名黑名单
 - 预编译 Android / iPhone USB 共享驱动
 - 默认创建 `usb_tether` 接口，并在插入手机后自动绑定到实际 USB 网卡
@@ -36,10 +37,10 @@
 
 ### 1. 关闭 IPv6
 
-- 编译阶段写入 `# CONFIG_IPV6 is not set`
 - 首次启动时删除 `wan6`、关闭 `dhcpv6 / ra / ndp`
 - 防火墙默认启用 `disable_ipv6`
 - sysctl 再次禁用 IPv6，避免遗漏
+- 保留内核 IPv6 支持，确保 `kmod-mediatek_hnat` 可正常编译
 
 ### 2. Tesla 域名黑名单
 
@@ -70,6 +71,12 @@
 - `kmod-mii`
 
 默认创建 `usb_tether` DHCP 接口，并自动加入 `wan` 防火墙区域。
+
+### 4. HNAT 说明
+
+- 当前构建保留 `kmod-mediatek_hnat`
+- 上游 `mtk_hnat` 在 `CONFIG_IPV6=n` 时会引用 IPv6 邻居表符号 `nd_tbl`
+- 因此这里不再关闭编译期 IPv6，只关闭默认运行时 IPv6
 
 ## 注意
 

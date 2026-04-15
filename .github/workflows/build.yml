@@ -124,7 +124,7 @@ jobs:
           Device: Cudy TR3000 v1 128MB
 
           Customizations:
-          - IPv6 compile-time and runtime disabled
+          - IPv6 kept in kernel for HNAT compatibility, but disabled at runtime on first boot
           - Tesla domains redirected to 127.0.0.1 by dnsmasq
           - Android and iPhone USB tether drivers prebuilt
           - Default usb_tether DHCP interface with hotplug auto-binding
