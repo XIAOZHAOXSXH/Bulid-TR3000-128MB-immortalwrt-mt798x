@@ -13,6 +13,7 @@
 - 首次启动时通过 UCI 和 sysctl 关闭默认运行时 IPv6 配置
 - 预置 Tesla 相关域名黑名单
 - 预编译 Android / iPhone USB 共享驱动和 iPhone 所需用户态组件
+- 默认 LuCI 主题切换为 `luci-theme-argon`
 - 默认创建 `usb_tether` 接口，并在插入手机后自动绑定到实际 USB 网卡
 - 编译完成后把固件和生成出的 `.config` 上传到 Actions Artifact，并同步发布到 Release
 
@@ -79,7 +80,12 @@
 默认创建 `usb_tether` DHCP 接口，并自动加入 `wan` 防火墙区域。
 首次启动时会自动启用 `usbmuxd`，避免 iPhone 插入后只枚举为普通 USB 设备而不切到 `ipheth` 网卡模式。
 
-### 4. HNAT 说明
+### 4. LuCI 主题
+
+- 镜像预装 `luci-theme-argon`
+- 首次启动时自动把 LuCI 默认主题切到 Argon
+
+### 5. HNAT 说明
 
 - 当前构建保留 `kmod-mediatek_hnat`
 - 上游 `mtk_hnat` 在 `CONFIG_IPV6=n` 时会引用 IPv6 邻居表符号 `nd_tbl`

@@ -37,6 +37,8 @@ set dhcp.lan.dhcpv6='disabled'
 set dhcp.lan.ra='disabled'
 set dhcp.lan.ndp='disabled'
 set firewall.@defaults[0].disable_ipv6='1'
+set luci.main=core
+set luci.main.mediaurlbase='/luci-static/argon'
 EOF
 
 for domain in \
@@ -65,6 +67,7 @@ fi
 uci commit network
 uci commit dhcp
 uci commit firewall
+uci commit luci
 
 if [ -x /etc/init.d/odhcpd ]; then
     /etc/init.d/odhcpd disable >/dev/null 2>&1 || true
