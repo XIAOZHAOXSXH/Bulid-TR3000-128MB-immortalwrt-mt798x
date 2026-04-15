@@ -71,6 +71,11 @@ if [ -x /etc/init.d/odhcpd ]; then
     /etc/init.d/odhcpd stop >/dev/null 2>&1 || true
 fi
 
+if [ -x /etc/init.d/usbmuxd ]; then
+    /etc/init.d/usbmuxd enable >/dev/null 2>&1 || true
+    /etc/init.d/usbmuxd start >/dev/null 2>&1 || true
+fi
+
 /etc/init.d/network reload >/dev/null 2>&1 || true
 /etc/init.d/dnsmasq restart >/dev/null 2>&1 || true
 /etc/init.d/firewall restart >/dev/null 2>&1 || true

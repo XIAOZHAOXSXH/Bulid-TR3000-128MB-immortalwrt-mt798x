@@ -12,7 +12,7 @@
 - 保留内核 IPv6 与 HNAT 相关能力，避免 `mtk_hnat` 编译失败
 - 首次启动时通过 UCI 和 sysctl 关闭默认运行时 IPv6 配置
 - 预置 Tesla 相关域名黑名单
-- 预编译 Android / iPhone USB 共享驱动
+- 预编译 Android / iPhone USB 共享驱动和 iPhone 所需用户态组件
 - 默认创建 `usb_tether` 接口，并在插入手机后自动绑定到实际 USB 网卡
 - 编译完成后把固件和生成出的 `.config` 上传到 Actions Artifact，并同步发布到 Release
 
@@ -22,7 +22,7 @@
 - `scripts/generate_config.sh`: 生成 TR3000 128MB 专用 `.config`
 - `scripts/apply_custom_files.sh`: 把仓库内 `files/` 注入上游源码
 - `scripts/collect_release_files.sh`: 收集固件、buildinfo 和 `.config`
-- `files/etc/uci-defaults/99-tr3000-custom`: 首次启动时应用 IPv6 关闭、域名黑名单和 USB 共享接口
+- `files/etc/uci-defaults/99-tr3000-custom`: 首次启动时应用 IPv6 关闭、域名黑名单、USB 共享接口并启用 `usbmuxd`
 - `files/etc/hotplug.d/net/90-usb-tether`: 热插拔自动识别 Android / iPhone USB 共享网卡
 - `files/etc/sysctl.d/99-disable-ipv6.conf`: 运行时 IPv6 sysctl 兜底禁用
 
@@ -70,7 +70,14 @@
 - `kmod-usb-wdm`
 - `kmod-mii`
 
+已预置以下 iPhone 相关用户态组件:
+
+- `usbmuxd`
+- `libimobiledevice`
+- `usbutils`
+
 默认创建 `usb_tether` DHCP 接口，并自动加入 `wan` 防火墙区域。
+首次启动时会自动启用 `usbmuxd`，避免 iPhone 插入后只枚举为普通 USB 设备而不切到 `ipheth` 网卡模式。
 
 ### 4. HNAT 说明
 

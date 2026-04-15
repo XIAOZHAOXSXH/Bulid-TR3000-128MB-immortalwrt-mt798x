@@ -55,6 +55,9 @@ filtered.extend(
         "CONFIG_PACKAGE_kmod-usb-net-ipheth=y",
         "CONFIG_PACKAGE_kmod-usb-net-rndis=y",
         "CONFIG_PACKAGE_kmod-usb-wdm=y",
+        "CONFIG_PACKAGE_libimobiledevice=y",
+        "CONFIG_PACKAGE_usbmuxd=y",
+        "CONFIG_PACKAGE_usbutils=y",
     ]
 )
 
@@ -63,4 +66,4 @@ PY
 
 make defconfig
 
-grep -E "CONFIG_TARGET_mediatek_filogic_DEVICE_cudy_tr3000-v1|CONFIG_IPV6|CONFIG_PACKAGE_kmod-mediatek_hnat|CONFIG_PACKAGE_kmod-usb-net-|CONFIG_PACKAGE_kmod-usb-wdm|CONFIG_PACKAGE_kmod-mii" .config || true
+grep -E "CONFIG_TARGET_mediatek_filogic_DEVICE_cudy_tr3000-v1|CONFIG_IPV6|CONFIG_PACKAGE_kmod-mediatek_hnat|CONFIG_PACKAGE_kmod-usb-net-|CONFIG_PACKAGE_kmod-usb-wdm|CONFIG_PACKAGE_kmod-mii|CONFIG_PACKAGE_libimobiledevice|CONFIG_PACKAGE_usbmuxd|CONFIG_PACKAGE_usbutils" .config || true

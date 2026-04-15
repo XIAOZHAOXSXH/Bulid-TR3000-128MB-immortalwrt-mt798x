@@ -127,6 +127,7 @@ jobs:
           - IPv6 kept in kernel for HNAT compatibility, but disabled at runtime on first boot
           - Tesla domains redirected to 127.0.0.1 by dnsmasq
           - Android and iPhone USB tether drivers prebuilt
+          - usbmuxd/libimobiledevice/usbutils preinstalled, usbmuxd auto-enabled on first boot
           - Default usb_tether DHCP interface with hotplug auto-binding
           - Generated .config included in release assets
           EOF
