@@ -24,7 +24,7 @@ if [ "${current_device}" != "${DEVICENAME}" ]; then
     changed=1
 fi
 
-wan_zone="$(uci show firewall | sed -n "s/^firewall\.\(@zone\[[0-9]\+\]\)\.name='wan'.*/\1/p" | head -n 1)"
+wan_zone="$(uci show firewall | sed -n "s/^\(firewall\.@zone\[[0-9]\+\]\)\.name='wan'.*/\1/p" | head -n 1)"
 if [ -n "${wan_zone}" ]; then
     wan_networks="$(uci -q get "${wan_zone}.network" || true)"
     echo "${wan_networks}" | tr ' ' '\n' | grep -Fx 'usb_tether' >/dev/null 2>&1 || {

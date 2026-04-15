@@ -13,14 +13,14 @@ add_dnsmasq_blackhole() {
 }
 
 find_wan_zone() {
-    uci show firewall | sed -n "s/^firewall\.\(@zone\[[0-9]\+\]\)\.name='wan'.*/\1/p" | head -n 1
+    uci show firewall | sed -n "s/^\(firewall\.@zone\[[0-9]\+\]\)\.name='wan'.*/\1/p" | head -n 1
 }
 
 WAN_ZONE="$(find_wan_zone)"
 
-uci -q delete network.globals.ula_prefix
-uci -q delete network.wan6
-uci -q delete network.usb_tether
+uci -q delete network.globals.ula_prefix || true
+uci -q delete network.wan6 || true
+uci -q delete network.usb_tether || true
 
 uci -q batch <<'EOF'
 set network.lan.delegate='0'
